@@ -754,6 +754,7 @@ class BaseResolver:
         self.retry_servfail = False
         self.rotate = False
         self.ndots = None
+        self.socket_factory = None
 
     def read_resolv_conf(self, f):
         """Process *f* as a file in the /etc/resolv.conf format.  If f is
@@ -1173,19 +1174,25 @@ class Resolver(BaseResolver):
                 try:
                     if dns.inet.is_address(nameserver):
                         if tcp:
-                            response = dns.query.tcp(request, nameserver,
-                                                     timeout=timeout,
-                                                     port=port,
-                                                     source=source,
-                                                     source_port=source_port)
+                            response = dns.query.tcp(
+                                request, nameserver,
+                                timeout=timeout,
+                                port=port,
+                                source=source,
+                                source_port=source_port,
+                                socket_factory=self.socket_factory,
+                            )
                         else:
-                            response = dns.query.udp(request,
-                                                     nameserver,
-                                                     timeout=timeout,
-                                                     port=port,
-                                                     source=source,
-                                                     source_port=source_port,
-                                                     raise_on_truncation=True)
+                            response = dns.query.udp(
+                                request,
+                                nameserver,
+                                timeout=timeout,
+                                port=port,
+                                source=source,
+                                source_port=source_port,
+                                raise_on_truncation=True,
+                                socket_factory=self.socket_factory,
+                            )
                     else:
                         protocol = urlparse(nameserver).scheme
                         if protocol != 'https':
