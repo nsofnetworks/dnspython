@@ -1,4 +1,4 @@
-from typing import Optional, Union, Dict, Generator, Any
+from typing import Optional, Union, Dict, Generator, Any, Callable
 from . import tsig, rdatatype, rdataclass, name, message
 from requests.sessions import Session
 
@@ -31,7 +31,8 @@ def tcp(q : message.Message, where : str, timeout : float = None, port=53,
         source_port : Optional[int] = 0,
         one_rr_per_rrset : Optional[bool] = False,
         ignore_trailing : Optional[bool] = False,
-        sock : Optional[socket.socket] = None) -> message.Message:
+        sock : Optional[socket.socket] = None,
+        socket_factory : Optional[Callable] = None) -> message.Message:
     pass
 
 def xfr(where : None, zone : Union[name.Name,str], rdtype=rdatatype.AXFR,
@@ -51,7 +52,8 @@ def udp(q : message.Message, where : str, timeout : Optional[float] = None,
         ignore_unexpected : Optional[bool] = False,
         one_rr_per_rrset : Optional[bool] = False,
         ignore_trailing : Optional[bool] = False,
-        sock : Optional[socket.socket] = None) -> message.Message:
+        sock : Optional[socket.socket] = None,
+        socket_factory : Optional[Callable] = None) -> message.Message:
     pass
 
 def tls(q : message.Message, where : str, timeout : Optional[float] = None,
