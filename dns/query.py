@@ -214,8 +214,13 @@ def _destination_and_source(where, port, source, source_port,
         source = dns.inet.low_level_address_tuple((source, source_port), af)
     return (af, destination, source)
 
-def _make_socket(af, type, source, ssl_context=None, server_hostname=None):
-    s = socket_factory(af, type)
+def _socket_factory(sf=None):
+    return sf or socket_factory
+
+def _make_socket(af, type, source, ssl_context=None, server_hostname=None,
+                 socket_factory=None): # pylint: disable=redefined-outer-name
+
+    s = _socket_factory(socket_factory)(af, type)
     try:
         s.setblocking(False)
         if source is not None:
@@ -453,7 +458,8 @@ def receive_udp(sock, destination=None, expiration=None,
 
 def udp(q, where, timeout=None, port=53, source=None, source_port=0,
         ignore_unexpected=False, one_rr_per_rrset=False, ignore_trailing=False,
-        raise_on_truncation=False, sock=None):
+        raise_on_truncation=False, sock=None,
+        socket_factory=None):  # pylint: disable=redefined-outer-name
     """Return the response obtained after sending a query via UDP.
 
     *q*, a ``dns.message.Message``, the query to send
@@ -487,7 +493,10 @@ def udp(q, where, timeout=None, port=53, source=None, source_port=0,
     *sock*, a ``socket.socket``, or ``None``, the socket to use for the
     query.  If ``None``, the default, a socket is created.  Note that
     if a socket is provided, it must be a nonblocking datagram socket,
-    and the *source* and *source_port* are ignored.
+    and the *source*, *source_port* and *socket_factory* are ignored.
+
+    *socket_factory*, a callable with ``socket.socket`` prototype, or ``None``,
+    the socket factory to use for creation of a new socket.
 
     Returns a ``dns.message.Message``.
     """
@@ -500,7 +509,8 @@ def udp(q, where, timeout=None, port=53, source=None, source_port=0,
         if sock:
             s = sock
         else:
-            s = stack.enter_context(_make_socket(af, socket.SOCK_DGRAM, source))
+            s = stack.enter_context(_make_socket(af, socket.SOCK_DGRAM, source,
+                                                 socket_factory=socket_factory))
         send_udp(s, wire, destination, expiration)
         (r, received_time) = receive_udp(s, destination, expiration,
                                          ignore_unexpected, one_rr_per_rrset,
@@ -677,7 +687,8 @@ def _connect(s, address, expiration):
 
 
 def tcp(q, where, timeout=None, port=53, source=None, source_port=0,
-        one_rr_per_rrset=False, ignore_trailing=False, sock=None):
+        one_rr_per_rrset=False, ignore_trailing=False, sock=None,
+        socket_factory=None):  # pylint: disable=redefined-outer-name
     """Return the response obtained after sending a query via TCP.
 
     *q*, a ``dns.message.Message``, the query to send
@@ -705,7 +716,11 @@ def tcp(q, where, timeout=None, port=53, source=None, source_port=0,
     *sock*, a ``socket.socket``, or ``None``, the socket to use for the
     query.  If ``None``, the default, a socket is created.  Note that
     if a socket is provided, it must be a nonblocking connected stream
-    socket, and *where*, *port*, *source* and *source_port* are ignored.
+    socket, and *where*, *port*, *source*, *source_port* and *socket_factory*
+    are ignored.
+
+    *socket_factory*, a callable with ``socket.socket`` prototype, or ``None``,
+    the socket factory to use for creation of a new socket.
 
     Returns a ``dns.message.Message``.
     """
@@ -719,8 +734,8 @@ def tcp(q, where, timeout=None, port=53, source=None, source_port=0,
             (af, destination, source) = _destination_and_source(where, port,
                                                                 source,
                                                                 source_port)
-            s = stack.enter_context(_make_socket(af, socket.SOCK_STREAM,
-                                                 source))
+            s = stack.enter_context(_make_socket(af, socket.SOCK_STREAM, source,
+                                                 socket_factory=socket_factory))
             _connect(s, destination, expiration)
         send_tcp(s, wire, expiration)
         (r, received_time) = receive_tcp(s, expiration, one_rr_per_rrset,
